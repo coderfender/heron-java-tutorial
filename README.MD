@@ -1,13 +1,11 @@
 ---
 title: Heron example Java topology
 description: Learn how to create Heron topologies in Java.
-services: hdinsight
-documentationcenter: ''
 author: Ali Ahmed
 tags: streamlio
 keywords: heron,Heron example,heron java,heron topology example
-
 ---
+
 # Create an Heron topology in Java
 
 Here we create a Heron topology that implements a word-count application. We will use Maven to build and package the project.
