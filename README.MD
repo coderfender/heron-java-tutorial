@@ -1,9 +1,9 @@
----
-title: Heron example Java topology
-description: Learn how to create Heron topologies in Java.
-author: Ali Ahmed
-tags: streamlio
-keywords: heron,Heron example,heron java,heron topology example
+
+**Metadata:**
+
+- title: Heron Example Java topology.
+- description: Learn how to create Heron topologies in Java.
+- keywords: heron, Heron example, heron java, heron topology example
 ---
 
 # Create an Heron topology in Java
@@ -49,7 +49,7 @@ Maven allows you to define project-level values called properties. In the __pom.
 </properties>
 ```
 
-These values are used in different sections of the `pom.xml`. For example, when specifying the version of Heron components, we can use `${heron.version}` instead of hard coding a value.
+These values are used in different sections of the `pom.xml`. For example, when specifying the version of Heron components, we can use `${heron.version}` instead of hardcoding a value.
 
 ### dependencies
 
@@ -142,7 +142,7 @@ A Java-based Apache Storm topology consists of three components that you must au
 
 ### Create the spout
 
-The Spount is implemented `RandomSentenceSpout.java` in the `src\main\java\tutorial` directory.
+The Spout is implemented `RandomSentenceSpout.java` in the `src\main\java\tutorial` directory.
 
 ```java
 package tutorial;
@@ -210,7 +210,7 @@ Bolts handle the data processing. This topology uses two bolts:
 > [!NOTE]
 > Bolts can do anything, for example, computation, persistence, or talking to external components.
 
-The Bolts are implmented in `SplitSentenceBolt.java` and `WordCountBolt.java` in the `src\main\java\tutorial` directory.
+The Bolts are implemented in `SplitSentenceBolt.java` and `WordCountBolt.java` in the `src\main\java\tutorial` directory.
 
 #### SplitSentenceBolt
 
@@ -402,7 +402,7 @@ public class WordCountTopology {
 ### Configure logging
 
 Heron uses java util logging to log information. 
-Topologies can psecifiy there own logging framework , in this example we are using log4j
+Topologies can specify their own logging framework , in this example we are using log4j
 
 ```xml
     <dependency>
@@ -445,3 +445,5 @@ There is a 3-second interval between emission of words and counts. The **WordCou
 ## Test on the cluster
 
 TODO
+
+ 
