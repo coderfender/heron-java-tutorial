@@ -8,41 +8,38 @@ tags:
 - heron topology example
 ---
 
-# Create an Heron topology in Java
+# Creating a Heron topology in Java
 
-Here we create a Heron topology that implements a word-count application. We will use Maven to build and package the project.
+In this tutorial we'll create a Heron topology that implements a word-count application. We'll use Maven to build and package the project, start up a Heron cluster locally, and run the topology on the live cluster.
 
 ## Prerequisites
 
 * [Java Developer Kit (JDK) version 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
-
-* [Maven (https://maven.apache.org/download.cgi)](https://maven.apache.org/download.cgi): Maven is a project build system for Java projects.
-
-* A text editor or IDE.
-
+* [Maven (https://maven.apache.org/download.cgi)](https://maven.apache.org/download.cgi) (a widely used build tool for Java projects)
+* A text editor or IDE
 
 ## Clone the project
 
-From the command line, use the following git command to clone this project
+From the command line, use the following Git command to clone this project:
 
 ```bash
-git clone https://github.com/streamlio/heron-java-tutorial.git
+$ git clone https://github.com/streamlio/heron-java-tutorial.git
 ```
 
-This command creates a directory named `heron-java-tutorial` at the current location, which contains a basic heron maven project.
-The `heron-java-tutorial` directory contains the following items:
+This command creates a directory named `heron-java-tutorial` at the current location, which contains a basic Heron Java project that you can build using Maven. The `heron-java-tutorial` directory contains the following items:
 
-* `pom.xml`: Contains settings for the Maven project.
-* `src\main\java\tutorial`: Contains your application code.
-* `src\main\resources`: Contains the log4j configuration.
-
-
-## Understating the maven pom.xml
+File or directory | Description
+:-----------------|:-----------
+`pom.xml` | Contains settings for the Maven project
+`src\main\java\tutorial` | Contains your application code
+`src\main\resources` | Contains the [log4j](https://logging.apache.org/log4j/) logging configuration for the application
 
 
-### properties
+## Understanding the Maven `pom.xml`
 
-Maven allows you to define project-level values called properties. In the __pom.xml__, the following text after the `</repositories>` add global properties:
+### Properties
+
+Maven allows you to define project-level values called *properties*. In the `pom.xml`, the following text after the `</repositories>` adds two global properties:
 
 ```xml
 <properties>
@@ -51,7 +48,7 @@ Maven allows you to define project-level values called properties. In the __pom.
 </properties>
 ```
 
-These values are used in different sections of the `pom.xml`. For example, when specifying the version of Heron components, we can use `${heron.version}` instead of hardcoding a value.
+These values are used in different sections of the `pom.xml`. For example, when specifying the version of the Heron libraries, we can use `${heron.version}` instead of hardcoding a value.
 
 ### dependencies
 
@@ -74,7 +71,7 @@ Below are the dependencies for Heron components in the `pom.xml`
 
 ### Build configuration
 
-Maven plug-ins allow you to customize the build stages of the project. For example, how the project is compiled or how to package it into a JAR file. General pom files follow this convention
+Maven plug-ins allow you to customize the build stages of the project, for example how the project is compiled or how to package it into a JAR file. General POM files follow this convention:
 
 ```xml
 <build>
@@ -85,11 +82,11 @@ Maven plug-ins allow you to customize the build stages of the project. For examp
 </build>
 ```
 
-This section is used to add plug-ins, resources, and other build configuration options. For a full reference of the **pom.xml** file, see [http://maven.apache.org/pom.html](http://maven.apache.org/pom.html).
+This section is used to add plug-ins, resources, and other build configuration options. For a full reference for `pom.xml` files, see the [Maven documentation](http://maven.apache.org/pom.html).
 
-### plug-ins
+### Plug-ins
 
-For Heron topologies implemented in Java, the [Exec Maven Plugin](http://www.mojohaus.org/exec-maven-plugin/) is useful because it allows you to easily run the topology locally in your development environment. The Exec Maven plugin is included in the`<plugins>` section of the `pom.xml` as such
+For Heron topologies implemented in Java, the [Exec Maven Plugin](http://www.mojohaus.org/exec-maven-plugin/) is useful because it allows you to easily run the topology locally in your development environment. The Exec Maven plugin is included in the `<plugins>` section of the `pom.xml` like this:
 
 ```xml
 <plugin>
@@ -104,19 +101,19 @@ For Heron topologies implemented in Java, the [Exec Maven Plugin](http://www.moj
     </execution>
     </executions>
     <configuration>
-    <executable>java</executable>
-    <includeProjectDependencies>true</includeProjectDependencies>
-    <includePluginDependencies>false</includePluginDependencies>
-    <classpathScope>compile</classpathScope>
-    <mainClass>${heron.topology}</mainClass>
-    <cleanupDaemonThreads>false</cleanupDaemonThreads> 
+        <executable>java</executable>
+        <includeProjectDependencies>true</includeProjectDependencies>
+        <includePluginDependencies>false</includePluginDependencies>
+        <classpathScope>compile</classpathScope>
+        <mainClass>${heron.topology}</mainClass>
+        <cleanupDaemonThreads>false</cleanupDaemonThreads> 
     </configuration>
 </plugin>
 ```
 
 Another useful plug-in is the [Apache Maven Compiler Plugin](http://maven.apache.org/plugins/maven-compiler-plugin/), which is used to change compilation options. The changes the Java version that Maven uses for the source and target for your application.
 
-* For Heron we set the source and target Java version to __1.8__.
+* For Heron we set the source and target Java version to **1.8**.
 
 The compiler configuration is in the `<plugins>` section of the `pom.xml` as such:
 
@@ -126,25 +123,25 @@ The compiler configuration is in the `<plugins>` section of the `pom.xml` as suc
     <artifactId>maven-compiler-plugin</artifactId>
     <version>3.6.2</version>
     <configuration>
-    <source>1.8</source>
-    <target>1.8</target>
+        <source>1.8</source>
+        <target>1.8</target>
     </configuration>
 </plugin>
 ```
 
 ## Create the topology
 
-A Java-based Apache Storm topology consists of three components that you must author (or reference) as a dependency.
+A Java-based Apache Storm topology consists of three components that you must author (or reference) as a dependency:
 
-* **Spouts**: Reads data from external sources and emits streams of data into the topology.
+* **Spouts** --- Read data from external sources and emits streams of data into the topology.
 
-* **Bolts**: Performs processing on streams emitted by spouts or other bolts, and emits one or more streams.
+* **Bolts** --- Perform processing on streams emitted by spouts or other bolts, and emits one or more streams.
 
-* **Topology**: Defines how the spouts and bolts are arranged, and provides the entry point for the topology.
+* **Topology** --- Defines how the spouts and bolts are arranged, and provides the entry point for the topology.
 
 ### Create the spout
 
-The Spout is implemented `RandomSentenceSpout.java` in the `src\main\java\tutorial` directory.
+The Spout is implemented `RandomSentenceSpout.java` in the `src/main/java/tutorial` directory.
 
 ```java
 package tutorial;
@@ -155,17 +152,17 @@ import ...
  * This spout randomly emits sentences
  */
 public class RandomSentenceSpout extends BaseRichSpout {
-    //Collector used to emit output
+    // Collector used to emit output
     SpoutOutputCollector collector;
-    //Used to generate a random number
+    // Used to generate a random number
     Random rand;
 
-    //Open is called when an instance of the class is created
+    // Open is called when an instance of the class is created
     @Override
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector collector) {
-        //Set the instance collector to the one passed in
+        // Set the instance collector to the one passed in
         this.collector = collector;
-        //For randomness
+        // For randomness
         this.rand = new Random();
 
     }
@@ -173,9 +170,9 @@ public class RandomSentenceSpout extends BaseRichSpout {
     //Emit data to the stream
     @Override
     public void nextTuple() {
-        //Sleep for a bit
+        // Sleep for a bit
         Utils.sleep(50);
-        //The sentences that are randomly emitted
+        // The sentences that are randomly emitted
         String[] sentences = new String[]{
             "the cow jumped over the moon",
             "an apple a day keeps the doctor away",
@@ -183,13 +180,13 @@ public class RandomSentenceSpout extends BaseRichSpout {
             "snow white and the seven dwarfs",
             "i am at two with nature"
         };
-        //Randomly pick a sentence
+        // Randomly pick a sentence
         String sentence = sentences[rand.nextInt(sentences.length)];
-        //Emit the sentence
+        // Emit the sentence
         collector.emit(new Values(sentence));
     }
 
-    //Declare the output fields. In this case, an sentence
+    // Declare the output fields. In this case, an sentence
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("sentence"));
@@ -198,21 +195,19 @@ public class RandomSentenceSpout extends BaseRichSpout {
 }
 ```
 
-> [!NOTE]
-> Although this topology uses only one spout, others may have several that feed data from different sources into the topology.
+> Although this topology uses only one spout, other topologies may have several that feed data from different sources into the topology.
 
 ### Create the bolts
 
 Bolts handle the data processing. This topology uses two bolts:
 
-* **SplitSentenceBolt**: Splits the sentences emitted by **RandomSentenceSpout** into individual words.
+* **SplitSentenceBolt** --- Splits the sentences emitted by **RandomSentenceSpout** into individual words.
 
-* **WordCountBolt**: Counts how many times each word has occurred.
+* **WordCountBolt** --- Counts how many times each word has occurred.
 
-> [!NOTE]
-> Bolts can do anything, for example, computation, persistence, or talking to external components.
+> Bolts can do anything, for example computation, persistence, or talking to external components.
 
-The Bolts are implemented in `SplitSentenceBolt.java` and `WordCountBolt.java` in the `src\main\java\tutorial` directory.
+The Bolts are implemented in `SplitSentenceBolt.java` and `WordCountBolt.java` in the `src/main/java/tutorial` directory.
 
 #### SplitSentenceBolt
 
@@ -226,31 +221,31 @@ import ...
  */
 public class SplitSentenceBolt extends BaseBasicBolt {
 
-    //Execute is called to process tuples
+    // Execute is called to process tuples
     @Override
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-        //Get the sentence content from the tuple
+        // Get the sentence content from the tuple
         String sentence = tuple.getString(0);
-        //An iterator to get each word
+        // An iterator to get each word
         BreakIterator boundary = BreakIterator.getWordInstance();
-        //Give the iterator the sentence
+        // Give the iterator the sentence
         boundary.setText(sentence);
-        //Find the beginning first word
+        // Find the beginning first word
         int start = boundary.first();
-        //Iterate over each word and emit it to the output stream
+        // Iterate over each word and emit it to the output stream
         for (int end = boundary.next(); end != BreakIterator.DONE; start = end, end = boundary.next()) {
-            //get the word
+            // Get the word
             String word = sentence.substring(start, end);
-            //If a word is whitespace characters, replace it with empty
+            // If a word is whitespace characters, replace it with empty
             word = word.replaceAll("\\s+", "");
-            //if it's an actual word, emit it
+            // If it's an actual word, emit it
             if (!word.equals("")) {
                 collector.emit(new Values(word));
             }
         }
     }
 
-    //Declare that emitted tuples contain a word field
+    // Declare that emitted tuples contain a word field
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
@@ -269,13 +264,13 @@ import ...
  * This Bolt emits word count pairs in periodic intervals
  */
 public class WordCountBolt extends BaseBasicBolt {
-    //Create logger for this class
+    // Create logger for this class
     private static final Logger logger = LogManager.getLogger(WordCountBolt.class);
 
     private static final int EMIT_FREQUENCY = 3;
-    //For holding words and counts
+    // For holding words and counts
     private Map<String, Integer> counts = new HashMap<>();
-    //How often to emit a count of words
+    // How often to emit a count of words
     private Integer emitFrequency;
 
     public WordCountBolt(){
@@ -286,9 +281,9 @@ public class WordCountBolt extends BaseBasicBolt {
         this.emitFrequency = emitFrequency;
     }
 
-    //Configure frequency of tick tuples for this bolt
-    //This delivers a 'tick' tuple on a specific interval,
-    //which is used to trigger certain actions
+    // Configure frequency of tick tuples for this bolt
+    // This delivers a 'tick' tuple on a specific interval,
+    // which is used to trigger certain actions
     @Override
     public Map<String, Object> getComponentConfiguration() {
         Config conf = new Config();
@@ -296,10 +291,10 @@ public class WordCountBolt extends BaseBasicBolt {
         return conf;
     }
 
-    //execute is called to process tuples
+    // Execute is called to process tuples
     @Override
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-        //If it's a tick tuple, emit all words and counts
+        // If it's a tick tuple, emit all words and counts
         if(TupleHelpers.isTickTuple(tuple)) {
             for(String word : counts.keySet()) {
                 Integer count = counts.get(word);
@@ -307,20 +302,20 @@ public class WordCountBolt extends BaseBasicBolt {
                 logger.info(String.format("Emitting a count of (%d) for word (%s)", count, word));
             }
         } else {
-            //Get the word contents from the tuple
+            // Get the word contents from the tuple
             String word = tuple.getString(0);
-            //Have we counted any already?
+            // Have we counted any already?
             Integer count = counts.get(word);
             if (count == null)
                 count = 0;
-            //Increment the count and store it
+            // Increment the count and store it
             count++;
             counts.put(word, count);
         }
     }
 
 
-    //Declare that this emits a tuple containing two fields; word and count
+    // Declare that this emits a tuple containing two fields; word and count
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word", "count"));
@@ -332,7 +327,7 @@ public class WordCountBolt extends BaseBasicBolt {
 
 The topology ties the spouts and bolts together into a graph, which defines how data flows between the components. It also provides parallelism hints that Heron uses when creating instances of the components within the cluster.
 
-The following image is a basic diagram of the graph of components for this topology.
+The following image is a basic diagram of the graph of components for this topology:
 
 ```
 +----------------+          +-------------------+             +-------------+      ("A",2)
@@ -351,7 +346,7 @@ The following image is a basic diagram of the graph of components for this topol
 ```
 
 
-The topology is implemented in the a file named `WordCountTopology.java` in the `src\main\java\tutorial` directory. Below is the code.
+The topology is implemented in the a file named `WordCountTopology.java` in the `src/main/java/tutorial` directory. Below is the code.
 
 ```java
 package tutorial;
@@ -365,25 +360,25 @@ public class WordCountTopology {
 
     private WordCountTopology() { }
 
-    //Entry point for the topology
+    // Entry point for the topology
     public static void main(String[] args) throws Exception {
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        //Add the spout, with a name of 'sentence'
-        //and parallelism hint of 3 executors
+        // Add the spout, with a name of 'sentence'
+        // and parallelism hint of 3 executors
         builder.setSpout("sentence", new RandomSentenceSpout(),3);
 
-        //Add the SplitSentence bolt, with a name of 'split'
-        //and parallelism hint of 8 executors
-        //shufflegrouping subscribes to the spout, and equally distributes
-        //tuples (sentences) across instances of the SplitSentence bolt
+        // Add the SplitSentence bolt, with a name of 'split'
+        // and parallelism hint of 8 executors
+        // shufflegrouping subscribes to the spout, and equally distributes
+        // tuples (sentences) across instances of the SplitSentence bolt
         builder.setBolt("split", new SplitSentenceBolt(),8).shuffleGrouping("sentence");
 
-        //Add the counter, with a name of 'count'
-        //and parallelism hint of 12 executors
-        //fieldsGrouping subscribes to the split bolt, and
-        //ensures that the same word is sent to the same instance (group by field 'word')
+        // Add the counter, with a name of 'count'
+        // and parallelism hint of 12 executors
+        // fieldsGrouping subscribes to the split bolt, and
+        // ensures that the same word is sent to the same instance (group by field 'word')
         builder.setBolt("count", new WordCountBolt(),12).fieldsGrouping("split", new Fields("word"));
         Config conf = new Config();
 
@@ -393,7 +388,7 @@ public class WordCountTopology {
         com.twitter.heron.api.Config.setComponentRam(conf, "count", ByteAmount.fromGigabytes(1));
         com.twitter.heron.api.Config.setContainerCpuRequested(conf, 3);
 
-        //submit the topology
+        // Submit the topology
         HelperRunner.runTopology(args, builder.createTopology(), conf);
 
     }
@@ -403,8 +398,7 @@ public class WordCountTopology {
 
 ### Configure logging
 
-Heron uses java util logging to log information. 
-Topologies can specify their own logging framework , in this example we are using log4j
+Heron uses Java logging to log information. Topologies can specify their own logging framework. In this example we are using [log4j](http://www.mojohaus.org/exec-maven-plugin/)).
 
 ```xml
     <dependency>
@@ -422,7 +416,7 @@ Topologies can specify their own logging framework , in this example we are usin
 
 ## Test the topology in a Simulator
 
-We can use the following command to test the topology in the heron simulator. The simulator is desined to test topologies in a single process.
+We can use the following command to test the topology in the Heron simulator. The simulator is desined to test topologies in a single process.
 
 ```bash
 $ mvn compile exec:java -Dheron.topology=tutorial.WordCountTopology -Dexec.args="WordCount Local"
