@@ -449,7 +449,7 @@ There is a 3-second interval between emission of words and counts. The **WordCou
 We need to build the jar to dpeloy on the cluster , here we assume a single node cluster running locally.
 
 
-```bash
+```shell
 $ mvn package
 $ heron submit local \
   ./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
@@ -459,7 +459,7 @@ $ heron submit local \
 ```
 ### Command Explanation
 
-```json
+```shell
 mvn package : will buld the jar with it's dependencies bundled
 
 heron submit local \ # submit to local cluster
@@ -475,7 +475,7 @@ WordCountTopology Cluster \ # The name of the topology (must be unique in a clus
  
 ### Activating topology
 
-```bash
+```shell
 $ heron activate local WordCountTopology
 ```
 
@@ -499,7 +499,7 @@ We can click on the view button > logs on the count bolt to show the streaming s
 
 ### Deactivating topology
 
-```bash
+```shell
 $ heron deactivate local WordCountTopology
 $ heron kill local WordCountTopology 
 ```
