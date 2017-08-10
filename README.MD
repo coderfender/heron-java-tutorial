@@ -1,9 +1,11 @@
-
-**Metadata:**
-
-- title: Heron Example Java topology.
-- description: Learn how to create Heron topologies in Java.
-- keywords: heron, Heron example, heron java, heron topology example
+---
+title: Heron Example Java topology.
+description: Learn how to create Heron topologies in Java.
+tags:
+- heron
+- Heron example
+- heron java
+- heron topology example
 ---
 
 # Create an Heron topology in Java
@@ -418,12 +420,12 @@ Topologies can specify their own logging framework , in this example we are usin
     </dependency>
 ```    
 
-## Test the topology locally
+## Test the topology in a Simulator
 
-We can use the following command to test the topology locally.
+We can use the following command to test the topology in the heron simulator. The simulator is desined to test topologies in a single process.
 
 ```bash
-mvn compile exec:java -Dheron.topology=tutorial.WordCountTopology -Dexec.args="WordCount Local"
+$ mvn compile exec:java -Dheron.topology=tutorial.WordCountTopology -Dexec.args="WordCount Local"
 ```
 
 As it runs, the topology displays startup information. The following text is an example of the word count output:
@@ -444,6 +446,60 @@ There is a 3-second interval between emission of words and counts. The **WordCou
 
 ## Test on the cluster
 
-TODO
+We need to build the jar to dpeloy on the cluster , here we assume a single node cluster running locally.
 
+
+```bash
+$ mvn package
+$ heron submit local \
+  ./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
+  tutorial.WordCountTopology \ 
+  WordCountTopology Cluster \ 
+  --deploy-deactivated 
+```
+### Command Explanation
+
+```json
+mvn package : will buld the jar with it's dependencies bundled
+
+heron submit local \ # submit to local cluster
+
+./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \ # The path of the topology's jar file
+
+tutorial.WordCountTopology \ # The topology's Java class
+
+WordCountTopology Cluster \ # The name of the topology (must be unique in a cluster)
+
+--deploy-deactivated # Deploy in deactivated mode
+```
  
+### Activating topology
+
+```bash
+$ heron activate local WordCountTopology
+```
+
+### Examine Cluster Execution
+
+We can now go to the heron ui (in our case http://0.0.0.0:8889/)
+and see the toplogies running
+
+![Topology UI](images/WordCountTopology_UI.png)
+
+We can now examint the topology by clicking on it
+![Topology Examination](images/WordCountTopologyExamination.png)
+
+Clicking on the count bolt will open further details for. 
+![Bolt Examination](images/WordCountBoltExamination.png)
+
+We can click on the view button > logs on the count bolt to show the streaming stdout.
+![WordCount Output](images/WordCountStdout.png)
+
+
+
+### Deactivating topology
+
+```bash
+$ heron deactivate local WordCountTopology
+$ heron kill local WordCountTopology 
+```
