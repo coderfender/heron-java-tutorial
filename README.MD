@@ -10,13 +10,19 @@ tags:
 
 # Creating a Heron topology in Java
 
-In this tutorial we'll create a Heron topology that implements a word-count application. We'll use Maven to build and package the project, start up a Heron cluster locally, and run the topology on the live cluster.
+In this tutorial we'll create a [Heron topology](https://twitter.github.io/heron/docs/concepts/topologies/) that implements a word count application. In this application:
+
+* A Heron [spout](https://twitter.github.io/heron/docs/concepts/topologies/#spouts) randomly selects sentences from a list, producing an indefinite stream of sentences
+* A Heron [bolt](https://twitter.github.io/heron/docs/concepts/topologies/#bolts) splits the sentences into words
+* A second Heron bolt counts the total number of times each word has appeared in the stream
+
+We'll use Maven to build and package the project, start up a Heron cluster locally, and run the topology on the live cluster.
 
 ## Prerequisites
 
 * [Java Developer Kit (JDK) version 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 * [Maven (https://maven.apache.org/download.cgi)](https://maven.apache.org/download.cgi) (a widely used build tool for Java projects)
-* A text editor or IDE
+* A text editor or IDE of your choice
 
 ## Clone the project
 
@@ -31,15 +37,14 @@ This command creates a directory named `heron-java-tutorial` at the current loca
 File or directory | Description
 :-----------------|:-----------
 `pom.xml` | Contains settings for the Maven project
-`src\main\java\tutorial` | Contains your application code
-`src\main\resources` | Contains the [log4j](https://logging.apache.org/log4j/) logging configuration for the application
+`src/main/java/tutorial` | Contains the application code
+`src/main/resources` | Contains the [log4j](https://logging.apache.org/log4j/) logging configuration for the application
 
-
-## Understanding the Maven `pom.xml`
+## Understanding the Maven `pom.xml` configuration file
 
 ### Properties
 
-Maven allows you to define project-level values called *properties*. In the `pom.xml`, the following text after the `</repositories>` adds two global properties:
+Maven allows you to define project-level values called *properties* in a `pom.xml` file. Placing the following text after the `<repositories>` section will add two global properties to the configuration:
 
 ```xml
 <properties>
@@ -113,9 +118,9 @@ For Heron topologies implemented in Java, the [Exec Maven Plugin](http://www.moj
 
 Another useful plug-in is the [Apache Maven Compiler Plugin](http://maven.apache.org/plugins/maven-compiler-plugin/), which is used to change compilation options. The changes the Java version that Maven uses for the source and target for your application.
 
-* For Heron we set the source and target Java version to **1.8**.
+> For Heron we set the source and target Java version to **1.8**.
 
-The compiler configuration is in the `<plugins>` section of the `pom.xml` as such:
+The compiler configuration is in the `<plugins>` section of the `pom.xml`. To use Java 8:
 
 ```xml
 <plugin>
@@ -131,17 +136,23 @@ The compiler configuration is in the `<plugins>` section of the `pom.xml` as suc
 
 ## Create the topology
 
-A Java-based Apache Storm topology consists of three components that you must author (or reference) as a dependency:
+A Java-based [Apache Storm](http://storm.apache.org/) topology consists of three components that you must author (or reference) as a dependency:
 
-* **Spouts** --- Read data from external sources and emits streams of data into the topology.
+* **Spouts** read data from external sources and emits streams of data into the topology
 
-* **Bolts** --- Perform processing on streams emitted by spouts or other bolts, and emits one or more streams.
+* **Bolts** perform processing on streams emitted by spouts or other bolts, and emits one or more streams
 
-* **Topology** --- Defines how the spouts and bolts are arranged, and provides the entry point for the topology.
+* The **topology** defines how the spouts and bolts are arranged, and provides the entry point for the topology
+
+> Wait a second: aren't we using *Heron* here and not Storm? Well, it's a bit complicated. Heron is a successor to Storm that can nonetheless run topologies written for Storm (it just runs them more efficiently).
 
 ### Create the spout
 
-The Spout is implemented `RandomSentenceSpout.java` in the `src/main/java/tutorial` directory.
+First, we need to create a data [*spout*](https://twitter.github.io/heron/docs/concepts/topologies/#spouts) for our topology that produces data to be processed.
+
+> Spouts can ingest data from all kinds of sources, from "Big Data" systems like [Apache Spark](https://spark.apache.org/) to pub-sub messaging systems like [Apache Kafka](https://kafka.apache.org) and [Apache Pulsar](https://pulsar.incubator.apache.org). We'll keep it simple here and build a self-generating stream of data.
+
+The random sentence spout is implemented in [`RandomSentenceSpout.java`](blob/master/src/main/java/tutorial/RandomSentenceSpout.java):
 
 ```java
 package tutorial;
@@ -195,21 +206,21 @@ public class RandomSentenceSpout extends BaseRichSpout {
 }
 ```
 
-> Although this topology uses only one spout, other topologies may have several that feed data from different sources into the topology.
+> Although this topology uses only one spout, other topologies may have several that feed data from different sources into the topology. How many spouts you need depends on your use case.
 
 ### Create the bolts
 
-Bolts handle the data processing. This topology uses two bolts:
+[*Bolts*]https://twitter.github.io/heron/docs/concepts/topologies/#bolts) handle data processing in Heron topologies. Bolts can do essentially anything you want them to, including performing computations, writing values to databases, publishing messages to pub-sub systems, and more.
 
-* **SplitSentenceBolt** --- Splits the sentences emitted by **RandomSentenceSpout** into individual words.
+Our word count topology uses two bolts:
 
-* **WordCountBolt** --- Counts how many times each word has occurred.
+* The `SplitSentenceBolt` splits the sentences emitted by the `RandomSentenceSpout` into individual words
 
-> Bolts can do anything, for example computation, persistence, or talking to external components.
+* The `WordCountBolt` receives groups of words from the `SplitSentenceBolt` and counts how many times each word has occurred
 
-The Bolts are implemented in `SplitSentenceBolt.java` and `WordCountBolt.java` in the `src/main/java/tutorial` directory.
+These bolts are implemented in [`SplitSentenceBolt.java`](blob/master/src/main/java/tutorial/SplitSentenceBolt.java) and [`WordCountBolt.java`](blob/master/src/main/java/tutorial/WordCountBolt.java). You can check out the code by following those links or read more below.
 
-#### SplitSentenceBolt
+#### `SplitSentenceBolt`
 
 ```java
 package tutorial;
@@ -253,7 +264,7 @@ public class SplitSentenceBolt extends BaseBasicBolt {
 }
 ```
 
-#### WordCountBolt
+#### `WordCountBolt`
 
 ```java
 package tutorial;
@@ -325,9 +336,9 @@ public class WordCountBolt extends BaseBasicBolt {
 
 ### Define the topology
 
-The topology ties the spouts and bolts together into a graph, which defines how data flows between the components. It also provides parallelism hints that Heron uses when creating instances of the components within the cluster.
+Once you've created the spouts and bolts that you need for your use case, you need to tie everything together into a processing graph known as a topology (technically speaking a *directed acyclic graph*). Topologies define how data flows between the components. The topology level is also where you can provide *parallelism hints* that Heron can use to make hardware and other choices when creating instances of the components within the cluster.
 
-The following image is a basic diagram of the graph of components for this topology:
+The following image is a basic diagram of the graph of components for our word count topology:
 
 ```
 +----------------+          +-------------------+             +-------------+      ("A",2)
@@ -346,7 +357,7 @@ The following image is a basic diagram of the graph of components for this topol
 ```
 
 
-The topology is implemented in the a file named `WordCountTopology.java` in the `src/main/java/tutorial` directory. Below is the code.
+The word count topology is implemented in [`WordCountTopology.java`](blob/master/src/main/java/tutorial/WordCountTopology.java). You can see the code by following that link or below:
 
 ```java
 package tutorial;
@@ -398,23 +409,23 @@ public class WordCountTopology {
 
 ### Configure logging
 
-Heron uses Java logging to log information. Topologies can specify their own logging framework. In this example we are using [log4j](http://www.mojohaus.org/exec-maven-plugin/)).
+Heron uses Java logging to log information. Topologies can specify their own logging framework. In this example we are using [log4j](http://www.mojohaus.org/exec-maven-plugin/). To use log4j, these dependencies were placed in the `<dependencies>` section of `pom.xml`:
 
 ```xml
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>2.6.2</version>
-    </dependency>
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-api</artifactId>
+    <version>2.6.2</version>
+</dependency>
 
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>2.6.2</version>
-    </dependency>
+<dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-core</artifactId>
+    <version>2.6.2</version>
+</dependency>
 ```    
 
-## Test the topology in a Simulator
+## Test the topology in a simulator
 
 We can use the following command to test the topology in the Heron simulator. The simulator is desined to test topologies in a single process.
 
@@ -422,78 +433,89 @@ We can use the following command to test the topology in the Heron simulator. Th
 $ mvn compile exec:java -Dheron.topology=tutorial.WordCountTopology -Dexec.args="WordCount Local"
 ```
 
+> To use the simulator, you do *not* need to have a Heron cluster running.
+
 As it runs, the topology displays startup information. The following text is an example of the word count output:
 
-	11:56:48 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (keeps)
-	11:56:48 [count_count_1] INFO  tutorial.WordCountBolt - Emitting a count of (161) for word (two)
-	11:56:48 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (119) for word (years)
-	11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (525) for word (the)
-	11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (119) for word (score)
-	11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (away)
-	11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (125) for word (snow)
-	11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (day)
-	11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (125) for word (dwarfs)
+```
+11:56:48 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (keeps)
+11:56:48 [count_count_1] INFO  tutorial.WordCountBolt - Emitting a count of (161) for word (two)
+11:56:48 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (119) for word (years)
+11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (525) for word (the)
+11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (119) for word (score)
+11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (away)
+11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (125) for word (snow)
+11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (day)
+11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (125) for word (dwarfs)
+```
 
-This example log indicates that the word 'keeps' has been emitted 152 times. The count continues to go up as long as the topology runs because the spout continuously emits the same sentences.
+This example log indicates that the word "keeps" has been emitted 152 times. The count continues to go up as long as the topology runs because the spout continuously emits the same sentences. The output that you see will be different because the sentences are chosen at random.
 
-There is a 3-second interval between emission of words and counts. The **WordCount** component is configured to only emit information when a tick tuple arrives. It requests that tick tuples are only delivered every five seconds.
+There is a 3-second interval between emissions of words and counts. The `WordCountBolt` component is configured to only emit information when a tick tuple arrives. It requests that tick tuples are only delivered every five seconds.
 
 ## Test on the cluster
 
-We need to build the jar to dpeloy on the cluster , here we assume a single node cluster running locally.
+In order to test our topology, we need to build a jar that we can deploy on a running Heron cluster. For our example we'll assume that you've set up a single-node Heron cluster running locally. Follow [this simple tutorial](https://twitter.github.io/heron/docs/getting-started/) to get a Heron cluster running in just a few commands.
 
+Once the cluster is up and running, you can package the topology using the configuration that's already in `pom.xml` and then submit the topology to the Heron cluster:
 
 ```shell
 $ mvn package
+
 $ heron submit local \
   ./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
-  tutorial.WordCountTopology \ 
-  WordCountTopology Cluster \ 
-  --deploy-deactivated 
+  tutorial.WordCountTopology \
+  WordCountTopology Cluster \
+  --deploy-deactivated
 ```
-### Command Explanation
+
+### Command explanation
+
+There was a lot going on in that last command. We'll break it down a bit here:
 
 ```shell
-mvn package : will buld the jar with it's dependencies bundled
+$ mvn package # This will buld the jar with its dependencies bundled
 
-heron submit local \ # submit to local cluster
-
-./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \ # The path of the topology's jar file
-
-tutorial.WordCountTopology \ # The topology's Java class
-
-WordCountTopology Cluster \ # The name of the topology (must be unique in a cluster)
-
---deploy-deactivated # Deploy in deactivated mode
+$ heron submit local \ # Submit to the local cluster
+  ./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \ # The path of the topology's jar file
+  tutorial.WordCountTopology \ # The topology's Java class
+  WordCountTopology Cluster \ # The name of the topology (must be unique in a cluster)
+  --deploy-deactivated # Deploy in deactivated mode
 ```
- 
-### Activating topology
+
+### Activating the topology
+
+At this point, the topology has been *submitted* to the Heron cluster but not yet *activated*. That essentially means that Heron has your application code and knows how to run it but hasn't actually started any processes yet. To activate---or run---the topology:
 
 ```shell
 $ heron activate local WordCountTopology
 ```
 
-### Examine Cluster Execution
+### Visually examining cluster execution
 
-We can now go to the heron ui (in our case http://0.0.0.0:8889/)
-and see the toplogies running
+To interact with our word count topology visually, we can use a dashboard interface called Heron UI. To see how to start up Heron UI, see step 4 in [this tutorial](https://twitter.github.io/heron/docs/getting-started/). Once you've started up the UI you can navigate to http://localhost:8889 and see the word count topology running. It should look like this:
 
 ![Topology UI](images/WordCountTopology_UI.png)
 
-We can now examint the topology by clicking on it
+We can now examine the topology by clicking on it:
+
 ![Topology Examination](images/WordCountTopologyExamination.png)
 
-Clicking on the count bolt will open further details for. 
+Clicking on the count bolt will open further details:
+
 ![Bolt Examination](images/WordCountBoltExamination.png)
 
-We can click on the view button > logs on the count bolt to show the streaming stdout.
+We can click on the view button > logs on the count bolt to show the streaming stdout:
+
 ![WordCount Output](images/WordCountStdout.png)
 
+### Deactivating the topology
 
-
-### Deactivating topology
+Once you've gone through this tutorial, you can deactivate and kill the topology:
 
 ```shell
 $ heron deactivate local WordCountTopology
 $ heron kill local WordCountTopology 
 ```
+
+> Deactivating a topology means that the topology is still known to the cluster but not running; killing the topology deletes it from the cluster for good.
