@@ -152,7 +152,7 @@ First, we need to create a data [*spout*](https://twitter.github.io/heron/docs/c
 
 > Spouts can ingest data from all kinds of sources, from "Big Data" systems like [Apache Spark](https://spark.apache.org/) to pub-sub messaging systems like [Apache Kafka](https://kafka.apache.org) and [Apache Pulsar](https://pulsar.incubator.apache.org). We'll keep it simple here and build a self-generating stream of data.
 
-The random sentence spout is implemented in [`RandomSentenceSpout.java`](blob/master/src/main/java/tutorial/RandomSentenceSpout.java):
+The random sentence spout is implemented in [`RandomSentenceSpout.java`](src/main/java/tutorial/RandomSentenceSpout.java):
 
 ```java
 package tutorial;
@@ -218,7 +218,7 @@ Our word count topology uses two bolts:
 
 * The `WordCountBolt` receives groups of words from the `SplitSentenceBolt` and counts how many times each word has occurred
 
-These bolts are implemented in [`SplitSentenceBolt.java`](blob/master/src/main/java/tutorial/SplitSentenceBolt.java) and [`WordCountBolt.java`](blob/master/src/main/java/tutorial/WordCountBolt.java). You can check out the code by following those links or read more below.
+These bolts are implemented in [`SplitSentenceBolt.java`](src/main/java/tutorial/SplitSentenceBolt.java) and [`WordCountBolt.java`](src/main/java/tutorial/WordCountBolt.java). You can check out the code by following those links or read more below.
 
 #### `SplitSentenceBolt`
 
@@ -357,7 +357,7 @@ The following image is a basic diagram of the graph of components for our word c
 ```
 
 
-The word count topology is implemented in [`WordCountTopology.java`](blob/master/src/main/java/tutorial/WordCountTopology.java). You can see the code by following that link or below:
+The word count topology is implemented in [`WordCountTopology.java`](src/main/java/tutorial/WordCountTopology.java). You can see the code by following that link or below:
 
 ```java
 package tutorial;
