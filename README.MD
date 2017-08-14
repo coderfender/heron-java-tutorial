@@ -62,12 +62,6 @@ Below are the dependencies for Heron components in the `pom.xml`
 ```xml
 <dependency>
     <groupId>com.twitter.heron</groupId>
-    <artifactId>heron-api</artifactId>
-    <version>${heron.version}</version>
-</dependency>
-
-<dependency>
-    <groupId>com.twitter.heron</groupId>
     <artifactId>heron-storm</artifactId>
     <version>${heron.version}</version>
 </dependency>
@@ -118,9 +112,10 @@ For Heron topologies implemented in Java, the [Exec Maven Plugin](http://www.moj
 
 Another useful plug-in is the [Apache Maven Compiler Plugin](http://maven.apache.org/plugins/maven-compiler-plugin/), which is used to change compilation options. This changes the Java version that Maven uses for the source and target for your application.
 
-> For Heron we set the source and target Java version to **1.8**.
+> For this project we set the source and target Java version to **1.8**.
 
 The compiler configuration is in the `<plugins>` section of the `pom.xml`. To use Java 8:
+__Note__ : Java 1.8+ is required for current versions of heron, the example will not work with Java 1.7 or less 
 
 ```xml
 <plugin>
@@ -215,7 +210,7 @@ public class RandomSentenceSpout extends BaseRichSpout {
 
 ### Create the bolts
 
-[*Bolts*]https://twitter.github.io/heron/docs/concepts/topologies/#bolts) handle data processing in Heron topologies. Bolts can do essentially anything you want them to, including performing computations, writing values to databases, publishing messages to pub-sub systems, and more.
+[*Bolts*](https://twitter.github.io/heron/docs/concepts/topologies/#bolts) handle data processing in Heron topologies. Bolts can do essentially anything you want them to, including performing computations, writing values to databases, publishing messages to pub-sub systems, and more.
 
 Our word count topology uses two bolts:
 
@@ -442,7 +437,7 @@ Heron uses Java logging to log information. Topologies can specify their own log
 
 ## Test the topology in a simulator
 
-We can use the following command to test the topology in the Heron simulator. The simulator is desined to test topologies in a single process.
+We can use the following command to test the topology in the Heron simulator. The simulator is designed to test topologies in a single process.
 
 ```bash
 $ mvn compile exec:java -Dheron.topology=tutorial.WordCountTopology -Dexec.args="WordCount Local"
@@ -489,7 +484,7 @@ $ heron submit local \
 There was a lot going on in that last command. We'll break it down a bit here:
 
 ```shell
-$ mvn package # This will buld the jar with its dependencies bundled
+$ mvn package # This will build the jar with its dependencies bundled
 
 $ heron submit local \ # Submit to the local cluster
   ./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \ # The path of the topology's jar file
