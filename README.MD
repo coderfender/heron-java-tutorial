@@ -10,11 +10,11 @@ tags:
 
 # Creating a Heron topology in Java
 
-In this tutorial we'll create a [Heron topology](https://twitter.github.io/heron/docs/concepts/topologies/) that implements a word count application. In this application:
+In this tutorial, we'll create a [Heron topology](https://twitter.github.io/heron/docs/concepts/topologies/) that implements a word count application. In this application:
 
 * A Heron [spout](https://twitter.github.io/heron/docs/concepts/topologies/#spouts) randomly selects sentences from a list, producing an indefinite stream of sentences
 * A Heron [bolt](https://twitter.github.io/heron/docs/concepts/topologies/#bolts) splits the sentences into words
-* A second Heron bolt counts the total number of times each word has appeared in the stream
+* Another Heron bolt counts the total number of times each word has appeared in the stream
 
 We'll use Maven to build and package the project, start up a Heron cluster locally, and run the topology on the live cluster.
 
@@ -32,7 +32,7 @@ From the command line, use the following Git command to clone this project:
 $ git clone https://github.com/streamlio/heron-java-tutorial.git
 ```
 
-This command creates a directory named `heron-java-tutorial` at the current location, which contains a basic Heron Java project that you can build using Maven. The `heron-java-tutorial` directory contains the following items:
+This command creates a directory named `heron-java-tutorial` at the current directory, which contains a basic Heron Java project that you can build using Maven. The `heron-java-tutorial` directory contains the following items:
 
 File or directory | Description
 :-----------------|:-----------
@@ -55,7 +55,7 @@ Maven allows you to define project-level values called *properties* in a `pom.xm
 
 These values are used in different sections of the `pom.xml`. For example, when specifying the version of the Heron libraries, we can use `${heron.version}` instead of hardcoding a value.
 
-### dependencies
+### Dependencies
 
 Below are the dependencies for Heron components in the `pom.xml` 
 
@@ -116,7 +116,7 @@ For Heron topologies implemented in Java, the [Exec Maven Plugin](http://www.moj
 </plugin>
 ```
 
-Another useful plug-in is the [Apache Maven Compiler Plugin](http://maven.apache.org/plugins/maven-compiler-plugin/), which is used to change compilation options. The changes the Java version that Maven uses for the source and target for your application.
+Another useful plug-in is the [Apache Maven Compiler Plugin](http://maven.apache.org/plugins/maven-compiler-plugin/), which is used to change compilation options. This changes the Java version that Maven uses for the source and target for your application.
 
 > For Heron we set the source and target Java version to **1.8**.
 
@@ -165,6 +165,7 @@ import ...
 public class RandomSentenceSpout extends BaseRichSpout {
     // Collector used to emit output
     SpoutOutputCollector collector;
+
     // Used to generate a random number
     Random rand;
 
@@ -173,6 +174,7 @@ public class RandomSentenceSpout extends BaseRichSpout {
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector collector) {
         // Set the instance collector to the one passed in
         this.collector = collector;
+
         // For randomness
         this.rand = new Random();
 
@@ -183,6 +185,7 @@ public class RandomSentenceSpout extends BaseRichSpout {
     public void nextTuple() {
         // Sleep for a bit
         Utils.sleep(50);
+
         // The sentences that are randomly emitted
         String[] sentences = new String[]{
             "the cow jumped over the moon",
@@ -191,8 +194,10 @@ public class RandomSentenceSpout extends BaseRichSpout {
             "snow white and the seven dwarfs",
             "i am at two with nature"
         };
+
         // Randomly pick a sentence
         String sentence = sentences[rand.nextInt(sentences.length)];
+
         // Emit the sentence
         collector.emit(new Values(sentence));
     }
@@ -206,7 +211,7 @@ public class RandomSentenceSpout extends BaseRichSpout {
 }
 ```
 
-> Although this topology uses only one spout, other topologies may have several that feed data from different sources into the topology. How many spouts you need depends on your use case.
+> Although this topology uses only one spout, other topologies may have several that feed data from different sources into the topology. The number of spouts you need depends on your application and use case.
 
 ### Create the bolts
 
@@ -237,18 +242,24 @@ public class SplitSentenceBolt extends BaseBasicBolt {
     public void execute(Tuple tuple, BasicOutputCollector collector) {
         // Get the sentence content from the tuple
         String sentence = tuple.getString(0);
+
         // An iterator to get each word
         BreakIterator boundary = BreakIterator.getWordInstance();
+
         // Give the iterator the sentence
         boundary.setText(sentence);
+
         // Find the beginning first word
         int start = boundary.first();
+
         // Iterate over each word and emit it to the output stream
         for (int end = boundary.next(); end != BreakIterator.DONE; start = end, end = boundary.next()) {
             // Get the word
             String word = sentence.substring(start, end);
+
             // If a word is whitespace characters, replace it with empty
             word = word.replaceAll("\\s+", "");
+
             // If it's an actual word, emit it
             if (!word.equals("")) {
                 collector.emit(new Values(word));
@@ -279,8 +290,10 @@ public class WordCountBolt extends BaseBasicBolt {
     private static final Logger logger = LogManager.getLogger(WordCountBolt.class);
 
     private static final int EMIT_FREQUENCY = 3;
+
     // For holding words and counts
     private Map<String, Integer> counts = new HashMap<>();
+
     // How often to emit a count of words
     private Integer emitFrequency;
 
@@ -315,10 +328,12 @@ public class WordCountBolt extends BaseBasicBolt {
         } else {
             // Get the word contents from the tuple
             String word = tuple.getString(0);
+
             // Have we counted any already?
             Integer count = counts.get(word);
             if (count == null)
                 count = 0;
+
             // Increment the count and store it
             count++;
             counts.put(word, count);
@@ -344,7 +359,7 @@ The following image is a basic diagram of the graph of components for our word c
 +----------------+          +-------------------+             +-------------+      ("A",2)
 |                |          |                   |             |             |
 | RandomSentence |          |                   |             |             |      ("B",1)
-|     Spout      +---------->  SenteceSplitter  +------------>+  WordCount  +---->
+|     Spout      +----------> SentenceSplitter  +------------>+  WordCount  +---->
 |                |          |       Bolt        |             |    Bolt     |      ("C",1)
 |                |          |                   |             |             |
 +----------------+          +-------------------+   ("A")     +-------------+      ("D",2)
