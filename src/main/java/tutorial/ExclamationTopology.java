@@ -87,7 +87,7 @@ public final class ExclamationTopology {
 
 
     /**
-     * Word Spout that outputs a ranom word among a list of words continuously
+     * Word Spout that outputs a random word among a list of words continuously
      */
     static class TestWordSpout extends BaseRichSpout {
 
@@ -163,16 +163,16 @@ public final class ExclamationTopology {
                 final String appendedWord = tuple.getString(0) + "!!!";
                 this.collector.emit(new Values(appendedWord));
                 System.out.println(appendedWord);
-                // Print out and record basic latency measurements in the conolse and metric registry
+                // Print out and record basic latency measurements in the console and metric registers
                 System.out.println("Bolt processed " + nItems + " tuples in " + latency + " ms");
                 GlobalMetrics.incr("selected_items");
             }
         }
 
-        // This method speisifes the output field labels
+        // This method specifies the output field labels
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("modified_word")); // Here we tagethe output tuple with the tag "modified_word"
+            declarer.declare(new Fields("modified_word")); // Here we declare output tuple with the tag "modified_word"
         }
     }
 }

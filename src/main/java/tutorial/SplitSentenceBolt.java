@@ -1,11 +1,12 @@
 package tutorial;
 
-import org.apache.storm.topology.BasicOutputCollector;
-import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseBasicBolt;
-import org.apache.storm.tuple.Fields;
-import org.apache.storm.tuple.Tuple;
-import org.apache.storm.tuple.Values;
+
+import com.twitter.heron.api.bolt.BaseBasicBolt;
+import com.twitter.heron.api.bolt.BasicOutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.tuple.Fields;
+import com.twitter.heron.api.tuple.Tuple;
+import com.twitter.heron.api.tuple.Values;
 
 import java.text.BreakIterator;
 
@@ -31,7 +32,7 @@ public class SplitSentenceBolt extends BaseBasicBolt {
             String word = sentence.substring(start, end);
             //If a word is whitespace characters, replace it with empty
             word = word.replaceAll("\\s+", "");
-            //if it's an actual word, emit it
+            //Only if it's an actual word, emit it
             if (!word.equals("")) {
                 collector.emit(new Values(word));
             }

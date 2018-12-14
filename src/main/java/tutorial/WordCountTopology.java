@@ -1,10 +1,11 @@
 package tutorial;
 
+import com.twitter.heron.api.Config;
+import com.twitter.heron.api.tuple.Fields;
 import com.twitter.heron.common.basics.ByteAmount;
-import org.apache.storm.Config;
-import org.apache.storm.topology.TopologyBuilder;
-import org.apache.storm.tuple.Fields;
+
 import tutorial.util.HelperRunner;
+import com.twitter.heron.api.topology.TopologyBuilder;
 
 /**
  * This is driver as well the topology graph generator

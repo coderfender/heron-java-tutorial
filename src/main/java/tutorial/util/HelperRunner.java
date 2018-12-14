@@ -1,12 +1,15 @@
 package tutorial.util;
 
-import org.apache.storm.Config;
+import com.twitter.heron.api.Config;
+import com.twitter.heron.api.HeronSubmitter;
+import com.twitter.heron.api.HeronTopology;
+
 import org.apache.storm.LocalCluster;
-import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.StormTopology;
+
 
 public class HelperRunner {
 
@@ -20,21 +23,20 @@ public class HelperRunner {
     private HelperRunner() {}
 
     public static void runTopology(String[] args,
-                                   StormTopology topology,
+                                   HeronTopology topology,
                                    Config conf) throws Exception {
 
         if (args != null) {
             if (args.length < 2) {
-                Exception exception = new IllegalArgumentException("Illegal number of command line arguments supplied." +
+                throw new IllegalArgumentException("Illegal number of command line arguments supplied." +
                         "\nPlease provide the topologyName as the first argument and either " +
                         "'Cluster' or 'Local' as the second argument.");
-                throw exception;
             }
 
             if (!args[1].equals(MODE_OF_OPERATION_CLUSTER) && !args[1].equals(MODE_OF_OPERATION_LOCAL)) {
-                Exception exception = new IllegalArgumentException("The allowed values for the second argument is either" +
+                throw new IllegalArgumentException("The allowed values for the second argument is either" +
                         " 'Cluster' or 'Local'. Please provide a valid value for the second argument.");
-                throw exception;
+
             }
 
             String topologyName = args[0];
@@ -42,7 +44,7 @@ public class HelperRunner {
             if (args[1].equals(MODE_OF_OPERATION_CLUSTER)) {
                 HelperRunner.runTopologyRemotely(topology, topologyName, conf);
             } else {
-                conf.setMaxTaskParallelism(NUMBER_OF_WORKERS);
+                conf.setComponentParallelism(NUMBER_OF_WORKERS);
                 HelperRunner.runTopologyLocally(topology, topologyName, conf, DEFAULT_RUNTIME_IN_SECONDS);
             }
 
@@ -50,18 +52,20 @@ public class HelperRunner {
 
     }
 
-    private static void runTopologyRemotely(StormTopology topology, String topologyName, Config conf)
-            throws InterruptedException, AlreadyAliveException, InvalidTopologyException, NotAliveException {
-        StormSubmitter.submitTopology(topologyName, conf, topology);
+    private static void runTopologyRemotely(HeronTopology topology, String topologyName, Config conf)
+            throws com.twitter.heron.api.exception.AlreadyAliveException, com.twitter.heron.api.exception.InvalidTopologyException {
+        HeronSubmitter.submitTopology(topologyName,conf,topology);
     }
 
-    private static void runTopologyLocally(StormTopology topology,
+    private static void runTopologyLocally(HeronTopology topology,
                                            String topologyName,
                                            Config conf,
                                            int runtimeInSeconds)
-            throws InterruptedException, AlreadyAliveException, InvalidTopologyException, NotAliveException {
+            throws InterruptedException, NotAliveException, AlreadyAliveException, InvalidTopologyException {
+
         LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology(topologyName, conf, topology);
+        StormTopology stormTopology = new StormTopology(topology);
+        cluster.submitTopology(topologyName, conf, stormTopology);
         Thread.sleep((long) runtimeInSeconds * MILLIS_IN_SEC);
         cluster.killTopology(topologyName);
         cluster.shutdown();

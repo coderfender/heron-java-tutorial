@@ -10,19 +10,26 @@ tags:
 
 # Creating a Heron topology in Java
 
-In this tutorial, we'll create a [Heron topology](https://twitter.github.io/heron/docs/concepts/topologies/) that implements a word count application. In this application:
+In this tutorial, we'll create a [Heron topology](https://apache.github.io/incubator-heron/docs/concepts/topologies/) that implements a word count application. In this application:
 
-* A Heron [spout](https://twitter.github.io/heron/docs/concepts/topologies/#spouts) randomly selects sentences from a list, producing an indefinite stream of sentences
-* A Heron [bolt](https://twitter.github.io/heron/docs/concepts/topologies/#bolts) splits the sentences into words
-* Another Heron bolt counts the total number of times each word has appeared in the stream
+* A Heron [spout](https://apache.github.io/incubator-heron/docs/concepts/topologies/#spouts) randomly selects sentences from a list, producing an infinite stream of sentences
+* A Heron [bolt](https://apache.github.io/incubator-heron/docs/concepts/topologies/#bolts) splits the sentences into words and trims any whitespace around them
+* Another Heron bolt counts the total number of times each word has appeared in the continuous stream
 
 We'll use Maven to build and package the project, start up a Heron cluster locally, and run the topology on the live cluster.
 
 ## Prerequisites
 
-* [Java Developer Kit (JDK) version 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+* [Java Developer Kit (JDK) version 8](https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 * [Maven (https://maven.apache.org/download.cgi)](https://maven.apache.org/download.cgi) (a widely used build tool for Java projects)
-* A text editor or IDE of your choice
+* A text editor/IDE of your choice
+* Python (For accessing command line args of Heron).More info [here]
+
+Mac users can install the maven build tool using Homebrew with the following command:
+
+```bash
+    brew install maven
+```
 
 ## Clone the project
 
@@ -32,7 +39,7 @@ From the command line, use the following Git command to clone this project:
 $ git clone https://github.com/streamlio/heron-java-tutorial.git
 ```
 
-This command creates a directory named `heron-java-tutorial` at the current directory, which contains a basic Heron Java project that you can build using Maven. The `heron-java-tutorial` directory contains the following items:
+This command creates a directory named `heron-java-tutorial` inside the current directory, which contains a basic Heron Java project that you can build using Maven. The `heron-java-tutorial` directory contains the following items:
 
 File or directory | Description
 :-----------------|:-----------
@@ -49,11 +56,11 @@ Maven allows you to define project-level values called *properties* in a `pom.xm
 ```xml
 <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <heron.version>0.14.6</heron.version>
+    <heron.version>0.17.8</heron.version>
 </properties>
 ```
 
-These values are used in different sections of the `pom.xml`. For example, when specifying the version of the Heron libraries, we can use `${heron.version}` instead of hardcoding a value.
+These values are used in different sections of the `pom.xml`. For example, when specifying the version of the Heron libraries, we can use the variable `${heron.version}` instead of hardcoding a value.
 
 ### Dependencies
 
@@ -131,7 +138,7 @@ __Note__ : Java 1.8+ is required for current versions of heron, the example will
 
 ## Create the topology
 
-A Java-based [Apache Storm](http://storm.apache.org/) topology consists of three components that you must author (or reference) as a dependency:
+A Java-based [Apache Heron](https://apache.github.io/incubator-heron/) topology consists of three components that you must author (or reference) as a dependency:
 
 * **Spouts** read data from external sources and emits streams of data into the topology
 
@@ -139,11 +146,16 @@ A Java-based [Apache Storm](http://storm.apache.org/) topology consists of three
 
 * The **topology** defines how the spouts and bolts are arranged, and provides the entry point for the topology
 
-> Wait a second: aren't we using *Heron* here and not Storm? Well, it's a bit complicated. Heron is a successor to Storm that can nonetheless run topologies written for Storm (it just runs them more efficiently).
+> Wait a second: aren't we using *Heron* here and not Storm? Well, it's a bit complicated. Heron is a successor to Storm that can seamlessly run topologies written for Storm (it just runs them more efficiently).
+
+> For more details, we would recommend you to watch [this](https://youtu.be/22wE2TP8I0s) cool presentation by Karthik
+
+> Also, Heron offers a tonne of features such as the [Streamlet](https://apache.github.io/incubator-heron/docs/developers/java/streamlet-api/) and [ECO](https://apache.github.io/incubator-heron/docs/developers/java/eco-api/) api (beta) which would further reduce the time and effort to create highly scalable topologies.
+
 
 ### Create the spout
 
-First, we need to create a data [*spout*](https://twitter.github.io/heron/docs/concepts/topologies/#spouts) for our topology that produces data to be processed.
+First, we need to create streaming tuples of data [*spout*](https://apache.github.io/incubator-heron/docs/concepts/topologies/#spouts) for our topology that produces data to be processed.
 
 > Spouts can ingest data from all kinds of sources, from "Big Data" systems like [Apache Spark](https://spark.apache.org/) to pub-sub messaging systems like [Apache Kafka](https://kafka.apache.org) and [Apache Pulsar](https://pulsar.incubator.apache.org). We'll keep it simple here and build a self-generating stream of data.
 
@@ -152,25 +164,33 @@ The random sentence spout is implemented in [`RandomSentenceSpout.java`](src/mai
 ```java
 package tutorial;
 
-import ...
+
+import com.twitter.heron.api.spout.BaseRichSpout;
+import com.twitter.heron.api.spout.SpoutOutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.topology.TopologyContext;
+import com.twitter.heron.api.tuple.Fields;
+import com.twitter.heron.api.tuple.Values;
+import com.twitter.heron.api.utils.Utils;
+
+import java.util.Map;
+import java.util.Random;
 
 /**
  * This spout randomly emits sentences
  */
 public class RandomSentenceSpout extends BaseRichSpout {
-    // Collector used to emit output
+    //Collector used to emit output
     SpoutOutputCollector collector;
-
-    // Used to generate a random number
+    //Used to generate a random number
     Random rand;
 
-    // Open is called when an instance of the class is created
+    //Open is called when an instance of the class is created
     @Override
     public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector collector) {
-        // Set the instance collector to the one passed in
+        //Set the instance collector to the one passed in
         this.collector = collector;
-
-        // For randomness
+        //For randomness
         this.rand = new Random();
 
     }
@@ -178,10 +198,9 @@ public class RandomSentenceSpout extends BaseRichSpout {
     //Emit data to the stream
     @Override
     public void nextTuple() {
-        // Sleep for a bit
+        //Sleep for a bit to prevent annoyance in o/p terminal
         Utils.sleep(50);
-
-        // The sentences that are randomly emitted
+        //The sentences that are randomly emitted
         String[] sentences = new String[]{
             "the cow jumped over the moon",
             "an apple a day keeps the doctor away",
@@ -189,20 +208,17 @@ public class RandomSentenceSpout extends BaseRichSpout {
             "snow white and the seven dwarfs",
             "i am at two with nature"
         };
-
-        // Randomly pick a sentence
+        //Randomly pick a sentence
         String sentence = sentences[rand.nextInt(sentences.length)];
-
-        // Emit the sentence
+        //Emit the sentence
         collector.emit(new Values(sentence));
     }
 
-    // Declare the output fields. In this case, an sentence
+    //Declare the output fields. In this case, an sentence
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("sentence"));
     }
-
 }
 ```
 
@@ -225,44 +241,46 @@ These bolts are implemented in [`SplitSentenceBolt.java`](src/main/java/tutorial
 ```java
 package tutorial;
 
-import ...
+
+import com.twitter.heron.api.bolt.BaseBasicBolt;
+import com.twitter.heron.api.bolt.BasicOutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.tuple.Fields;
+import com.twitter.heron.api.tuple.Tuple;
+import com.twitter.heron.api.tuple.Values;
+
+import java.text.BreakIterator;
 
 /**
  * This Bolt splits a sentence into words
  */
 public class SplitSentenceBolt extends BaseBasicBolt {
 
-    // Execute is called to process tuples
+    //Execute is called to process tuples
     @Override
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-        // Get the sentence content from the tuple
+        //Get the sentence content from the tuple
         String sentence = tuple.getString(0);
-
-        // An iterator to get each word
+        //An iterator to get each word
         BreakIterator boundary = BreakIterator.getWordInstance();
-
-        // Give the iterator the sentence
+        //Give the iterator the sentence
         boundary.setText(sentence);
-
-        // Find the beginning first word
+        //Find the beginning first word
         int start = boundary.first();
-
-        // Iterate over each word and emit it to the output stream
+        //Iterate over each word and emit it to the output stream
         for (int end = boundary.next(); end != BreakIterator.DONE; start = end, end = boundary.next()) {
-            // Get the word
+            //get the word
             String word = sentence.substring(start, end);
-
-            // If a word is whitespace characters, replace it with empty
+            //If a word is whitespace characters, replace it with empty
             word = word.replaceAll("\\s+", "");
-
-            // If it's an actual word, emit it
+            //Only if it's an actual word, emit it
             if (!word.equals("")) {
                 collector.emit(new Values(word));
             }
         }
     }
 
-    // Declare that emitted tuples contain a word field
+    //Declare that emitted tuples contain a word field
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
@@ -275,21 +293,31 @@ public class SplitSentenceBolt extends BaseBasicBolt {
 ```java
 package tutorial;
 
-import ...
+import java.util.HashMap;
+import java.util.Map;
+
+import com.twitter.heron.api.Config;
+import com.twitter.heron.api.bolt.BaseBasicBolt;
+import com.twitter.heron.api.bolt.BasicOutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.tuple.Fields;
+import com.twitter.heron.api.tuple.Tuple;
+import com.twitter.heron.api.tuple.Values;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import tutorial.util.TupleHelpers;
 
 /**
  * This Bolt emits word count pairs in periodic intervals
  */
 public class WordCountBolt extends BaseBasicBolt {
-    // Create logger for this class
+    //Create logger for this class
     private static final Logger logger = LogManager.getLogger(WordCountBolt.class);
 
     private static final int EMIT_FREQUENCY = 3;
-
-    // For holding words and counts
+    //For holding words and counts
     private Map<String, Integer> counts = new HashMap<>();
-
-    // How often to emit a count of words
+    //How often to emit a count of words
     private Integer emitFrequency;
 
     public WordCountBolt(){
@@ -300,9 +328,9 @@ public class WordCountBolt extends BaseBasicBolt {
         this.emitFrequency = emitFrequency;
     }
 
-    // Configure frequency of tick tuples for this bolt
-    // This delivers a 'tick' tuple on a specific interval,
-    // which is used to trigger certain actions
+    //Configure frequency of tick tuples for this bolt
+    //This delivers a 'tick' tuple on a specific interval,
+    //which is used to trigger certain actions
     @Override
     public Map<String, Object> getComponentConfiguration() {
         Config conf = new Config();
@@ -310,10 +338,10 @@ public class WordCountBolt extends BaseBasicBolt {
         return conf;
     }
 
-    // Execute is called to process tuples
+    //execute is called to process tuples
     @Override
     public void execute(Tuple tuple, BasicOutputCollector collector) {
-        // If it's a tick tuple, emit all words and counts
+        //If it's a tick tuple, emit all words and counts
         if(TupleHelpers.isTickTuple(tuple)) {
             for(String word : counts.keySet()) {
                 Integer count = counts.get(word);
@@ -321,27 +349,25 @@ public class WordCountBolt extends BaseBasicBolt {
                 logger.info(String.format("Emitting a count of (%d) for word (%s)", count, word));
             }
         } else {
-            // Get the word contents from the tuple
+            //Get the word contents from the tuple
             String word = tuple.getString(0);
-
-            // Have we counted any already?
+            //Have we counted any already?
             Integer count = counts.get(word);
             if (count == null)
                 count = 0;
-
-            // Increment the count and store it
+            //Increment the count and store it
             count++;
             counts.put(word, count);
         }
     }
 
 
-    // Declare that this emits a tuple containing two fields; word and count
+    //Declare that this emits a tuple containing two fields; word and count
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word", "count"));
     }
-}
+
 ```
 
 ### Define the topology
@@ -351,18 +377,19 @@ Once you've created the spouts and bolts that you need for your use case, you ne
 The following image is a basic diagram of the graph of components for our word count topology:
 
 ```
-+----------------+          +-------------------+             +-------------+      ("A",2)
++----------------+          +-------------------+             +-------------+       ("the", 2)
 |                |          |                   |             |             |
-| RandomSentence |          |                   |             |             |      ("B",1)
+| RandomSentence |          |                   |             |             |       ("quick", 1)
 |     Spout      +----------> SentenceSplitter  +------------>+  WordCount  +---->
-|                |          |       Bolt        |             |    Bolt     |      ("C",1)
+|                |          |       Bolt        |             |    Bolt     |       ("brown", 1)
 |                |          |                   |             |             |
-+----------------+          +-------------------+   ("A")     +-------------+      ("D",2)
-                                                    ("D")
-         ("A D B C A D")                            ("B")
-                                                    ("C")
-                                                    ("A")
-                                                    ("D")
++----------------+          +-------------------+   ("the")     +-------------+     ("fox", 2)
+                                                    ("quick")                       
+     ("the quick brown fox jumped the fence")       ("brown")                       ("jumped", 1)
+                                                    ("fox")
+                                                    ("jumped")                      ("fence", 1)
+                                                    ("the")                         
+                                                    ("fence")                       
 
 ```
 
@@ -372,7 +399,12 @@ The word count topology is implemented in [`WordCountTopology.java`](src/main/ja
 ```java
 package tutorial;
 
-import ...
+import com.twitter.heron.api.Config;
+import com.twitter.heron.api.tuple.Fields;
+import com.twitter.heron.common.basics.ByteAmount;
+
+import tutorial.util.HelperRunner;
+import com.twitter.heron.api.topology.TopologyBuilder;
 
 /**
  * This is driver as well the topology graph generator
@@ -381,25 +413,25 @@ public class WordCountTopology {
 
     private WordCountTopology() { }
 
-    // Entry point for the topology
+    //Entry point for the topology
     public static void main(String[] args) throws Exception {
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        // Add the spout, with a name of 'sentence'
-        // and parallelism hint of 3 executors
+        //Add the spout, with a name of 'sentence'
+        //and parallelism hint of 3 executors
         builder.setSpout("sentence", new RandomSentenceSpout(),3);
 
-        // Add the SplitSentence bolt, with a name of 'split'
-        // and parallelism hint of 8 executors
-        // shufflegrouping subscribes to the spout, and equally distributes
-        // tuples (sentences) across instances of the SplitSentence bolt
+        //Add the SplitSentence bolt, with a name of 'split'
+        //and parallelism hint of 8 executors
+        //shufflegrouping subscribes to the spout, and equally distributes
+        //tuples (sentences) across instances of the SplitSentence bolt
         builder.setBolt("split", new SplitSentenceBolt(),8).shuffleGrouping("sentence");
 
-        // Add the counter, with a name of 'count'
-        // and parallelism hint of 12 executors
-        // fieldsGrouping subscribes to the split bolt, and
-        // ensures that the same word is sent to the same instance (group by field 'word')
+        //Add the counter, with a name of 'count'
+        //and parallelism hint of 12 executors
+        //fieldsGrouping subscribes to the split bolt, and
+        //ensures that the same word is sent to the same instance (group by field 'word')
         builder.setBolt("count", new WordCountBolt(),12).fieldsGrouping("split", new Fields("word"));
         Config conf = new Config();
 
@@ -409,12 +441,13 @@ public class WordCountTopology {
         com.twitter.heron.api.Config.setComponentRam(conf, "count", ByteAmount.fromGigabytes(1));
         com.twitter.heron.api.Config.setContainerCpuRequested(conf, 3);
 
-        // Submit the topology
+        //submit the topology
         HelperRunner.runTopology(args, builder.createTopology(), conf);
 
     }
 
 }
+
 ```
 
 ### Configure logging
@@ -440,26 +473,30 @@ Heron uses Java logging to log information. Topologies can specify their own log
 We can use the following command to test the topology in the Heron simulator. The simulator is designed to test topologies in a single process.
 
 ```bash
-$ mvn compile exec:java -Dheron.topology=tutorial.WordCountTopology -Dexec.args="WordCount Local"
+$ mvn compile exec:java -D heron.topology=tutorial.WordCountTopology -D exec.args="WordCount Local"
 ```
 
-> To use the simulator, you do *not* need to have a Heron cluster running.
+From IntelliJ IDE, you can add the params `WordCountTopology` (Topology name) and `Local` (Cluster specification) as args in run configurations instead of the command line arg mentioned above
 
-As it runs, the topology displays startup information. The following text is an example of the word count output:
+> To use the simulator, you do *NOT* need to have a Heron cluster running on your machine.
+
+Once the JAR is built, the topology displays startup information. The following is a sample output (your output may vary):
 
 ```
-11:56:48 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (keeps)
-11:56:48 [count_count_1] INFO  tutorial.WordCountBolt - Emitting a count of (161) for word (two)
-11:56:48 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (119) for word (years)
-11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (525) for word (the)
-11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (119) for word (score)
-11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (away)
-11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (125) for word (snow)
-11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (152) for word (day)
-11:56:48 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (125) for word (dwarfs)
+16:29:01 [count_count_1] INFO  tutorial.WordCountBolt - Emitting a count of (36) for word (doctor)
+16:29:01 [count_count_8] INFO  tutorial.WordCountBolt - Emitting a count of (36) for word (a)
+16:29:01 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (32) for word (white)
+16:29:01 [count_count_6] INFO  tutorial.WordCountBolt - Emitting a count of (32) for word (snow)
+16:29:01 [count_count_5] INFO  tutorial.WordCountBolt - Emitting a count of (31) for word (nature)
+16:29:01 [count_count_7] INFO  tutorial.WordCountBolt - Emitting a count of (25) for word (over)
+16:29:01 [count_count_3] INFO  tutorial.WordCountBolt - Emitting a count of (118) for word (the)
+16:29:01 [count_count_2] INFO  tutorial.WordCountBolt - Emitting a count of (73) for word (seven)
+16:29:01 [count_count_1] INFO  tutorial.WordCountBolt - Emitting a count of (31) for word (with)
+16:29:01 [count_count_4] INFO  tutorial.WordCountBolt - Emitting a count of (31) for word (i)
+16:29:01 [count_count_7] INFO  tutorial.WordCountBolt - Emitting a count of (25) for word (jumped)
 ```
 
-This example log indicates that the word "keeps" has been emitted 152 times. The count continues to go up as long as the topology runs because the spout continuously emits the same sentences. The output that you see will be different because the sentences are chosen at random.
+This example log indicates that the word "over" has been emitted 25 times. The count continues to go up as long as the topology runs because the spout continuously emits the same sentences. The output that you see will be different because the sentences are chosen at random.
 
 There is a 3-second interval between emissions of words and counts. The `WordCountBolt` component is configured to only emit information when a tick tuple arrives. It requests that tick tuples are only delivered every five seconds.
 
@@ -484,12 +521,12 @@ $ heron submit local \
 There was a lot going on in that last command. We'll break it down a bit here:
 
 ```shell
-$ mvn package # This will build the jar with its dependencies bundled
+$ mvn package # This will build the fat jar with its dependencies bundled
 
 $ heron submit local \ # Submit to the local cluster
   ./target/heron-starter-0.0.1-SNAPSHOT-jar-with-dependencies.jar \ # The path of the topology's jar file
-  tutorial.WordCountTopology \ # The topology's Java class
-  WordCountTopology Cluster \ # The name of the topology (must be unique in a cluster)
+  tutorial.WordCountTopology \ # The topology's Java class which contains the main method
+  WordCountTopology Cluster \ # The name of the topology (must be unique in a cluster , i.e no two topologies can have same name when running in a same cluster)
   --deploy-deactivated # Deploy in deactivated mode
 ```
 
@@ -503,7 +540,7 @@ $ heron activate local WordCountTopology
 
 ### Visually examining cluster execution
 
-To interact with our word count topology visually, we can use a dashboard interface called Heron UI. To see how to start up Heron UI, see step 4 in [this tutorial](https://twitter.github.io/heron/docs/getting-started/). Once you've started up the UI you can navigate to http://localhost:8889 and see the word count topology running. It should look like this:
+To interact with our word count topology visually, we can use a dashboard interface called Heron UI. To see how to start up Heron UI, see step 4 in [this tutorial](https://apache.github.io/incubator-heron/docs/developers/ui-guide/). Once you've started up the UI you can navigate to http://localhost:8889 and see the word count topology running. It should look like this:
 
 ![Topology UI](images/WordCountTopology_UI.png)
 
@@ -529,3 +566,27 @@ $ heron kill local WordCountTopology
 ```
 
 > Deactivating a topology means that the topology is still known to the cluster but not running; killing the topology deletes it from the cluster for good.
+
+> Voila! you have your first Heron Topology up and running on your local machine.However, Heron can do  much more than a wordcount topology.
+
+Next Steps:
+
+Now that you are able to run a sample word count topology, we would encourage you to explore concepts of Heron Architecture and Data Models.
+If you are interested in contributing, please follow instructions mentioned in the source code repo of apache heron [here](https://github.com/apache/incubator-heron)
+
+
+Troubleshooting Guide:
+
+Q: I am unable to clone the Git repository ?
+
+A: Check if you are able to connect to the public git server. More info in [this](https://stackoverflow.com/questions/12538130/cant-clone-a-github-repo-on-linux-via-https) stack overflow post 
+
+Q: The shell command to package my code fails with error message *Invalid Build configuration*
+
+A: Is your pom.xml right? Check the pom.xml [here](./pom.xml)
+
+Q: I am unable to compile my code since my *pom.xml* is failing with error "Unable to fetch dependencies"
+
+A: This is a common case when the local maven build tool is unable to communicate with the Maven server.Try checking the VPN/Firewall settings.
+
+

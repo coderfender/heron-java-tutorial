@@ -1,12 +1,13 @@
 package tutorial;
 
-import org.apache.storm.spout.SpoutOutputCollector;
-import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichSpout;
-import org.apache.storm.tuple.Fields;
-import org.apache.storm.tuple.Values;
-import org.apache.storm.utils.Utils;
+
+import com.twitter.heron.api.spout.BaseRichSpout;
+import com.twitter.heron.api.spout.SpoutOutputCollector;
+import com.twitter.heron.api.topology.OutputFieldsDeclarer;
+import com.twitter.heron.api.topology.TopologyContext;
+import com.twitter.heron.api.tuple.Fields;
+import com.twitter.heron.api.tuple.Values;
+import com.twitter.heron.api.utils.Utils;
 
 import java.util.Map;
 import java.util.Random;
@@ -33,7 +34,7 @@ public class RandomSentenceSpout extends BaseRichSpout {
     //Emit data to the stream
     @Override
     public void nextTuple() {
-        //Sleep for a bit
+        //Sleep for a bit to prevent annoyance in o/p terminal
         Utils.sleep(50);
         //The sentences that are randomly emitted
         String[] sentences = new String[]{
