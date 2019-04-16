@@ -20,7 +20,7 @@ public class WordCountTopology {
         TopologyBuilder builder = new TopologyBuilder();
 
         //Add the spout, with a name of 'sentence'
-        //and parallelism hint of 3 executors
+        //and parallelism of 3 executors
         builder.setSpout("sentence", new RandomSentenceSpout(),3);
 
         //Add the SplitSentence bolt, with a name of 'split'

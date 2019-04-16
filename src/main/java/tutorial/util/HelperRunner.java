@@ -49,6 +49,9 @@ public class HelperRunner {
             }
 
         }
+        else {
+            throw new IllegalArgumentException("There are no arguments provided. Please resubmit the job with command line args");
+        }
 
     }
 
