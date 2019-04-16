@@ -1,4 +1,4 @@
 *.iml
 .idea/
 target/
-heron-install-0.17.5-ubuntu.sh
+*heron-install-0.17.5-ubuntu.sh
